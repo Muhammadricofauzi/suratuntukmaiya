@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sebuah Kejutan untukmu...</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #12001e;
+            --primary-color: #ff79c6;
+            --secondary-color: #f1fa8c;
+            --text-color: #f8f8f2;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #sparkle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        h1 {
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            color: var(--text-color);
+            text-shadow: 0 0 15px var(--primary-color);
+            margin-bottom: 20px;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        .surprise-button {
+            background: linear-gradient(45deg, var(--primary-color), #bd93f9);
+            color: var(--text-color);
+            border: none;
+            padding: 18px 36px;
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 121, 198, 0.7);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: pulse 2s infinite, fadeIn 2s 1s ease-in-out backwards;
+        }
+
+        .surprise-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 121, 198, 1);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(18, 0, 30, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .message-box {
+            transform: scale(0.7);
+            transition: transform 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        
+        .modal-overlay.show .message-box {
+             transform: scale(1);
+        }
+
+
+        .message-content {
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(3rem, 10vw, 7rem);
+            color: var(--text-color);
+            text-align: center;
+            text-shadow: 0 0 25px var(--primary-color), 0 0 40px #fff;
+            padding: 40px;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 3rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="sparkle-canvas"></canvas>
+
+    <div class="container">
+        <h1>Hai Maiya, aku punya sesuatu untukmu...</h1>
+        <button class="surprise-button" id="openModalBtn">Klik di sini, Sayang ❤️</button>
+    </div>
+
+    <div class="modal-overlay" id="messageModal">
+        <div class="message-box">
+            <p class="message-content">Aku mencintaimu, Maiya</p>
+        </div>
+        <button class="close-button" id="closeModalBtn">&times;</button>
+    </div>
+    
+    <!-- Tone.js untuk musik -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
+    <script>
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const messageModal = document.getElementById('messageModal');
+
+        let musicStarted = false;
+        let synth, melody;
+
+        // Inisialisasi musik
+        function setupMusic() {
+            // Membuat synth polifonik
+            synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: {
+                    type: "fatsawtooth",
+                    count: 3,
+                    spread: 30
+                },
+                envelope: {
+                    attack: 0.01,
+                    decay: 0.1,
+                    sustain: 0.5,
+                    release: 0.4,
+                    attackCurve: "exponential"
+                }
+            }).toDestination();
+            
+            // Melodi yang lembut dan romantis
+            const notes = ["C4", "E4", "G4", "B4", "A4", "G4", "E4"];
+            melody = new Tone.Sequence((time, note) => {
+                synth.triggerAttackRelease(note, "8n", time);
+            }, notes, "4n");
+
+            Tone.Transport.bpm.value = 80;
+            melody.start(0);
+        }
+
+        function playMusic() {
+            if (!musicStarted) {
+                Tone.start();
+                setupMusic();
+                Tone.Transport.start();
+                musicStarted = true;
+            }
+        }
+        
+        // Event Listener untuk tombol
+        openModalBtn.addEventListener('click', () => {
+            playMusic();
+            messageModal.classList.add('show');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            messageModal.classList.remove('show');
+        });
+
+        messageModal.addEventListener('click', (e) => {
+            if (e.target === messageModal) {
+                messageModal.classList.remove('show');
+            }
+        });
+
+        // Animasi latar belakang berkelip
+        const canvas = document.getElementById('sparkle-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let sparks = [];
+
+        class Spark {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+                this.color = `rgba(255, 255, 255, ${Math.random()})`;
+                this.life = Math.random() * 100 + 50;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life--;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function createSparks() {
+            for (let i = 0; i < 150; i++) {
+                sparks.push(new Spark(Math.random() * canvas.width, Math.random() * canvas.height));
+            }
+        }
+
+        function handleSparks() {
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                sparks[i].update();
+                sparks[i].draw();
+
+                if (sparks[i].life < 0) {
+                    sparks.splice(i, 1);
+                    sparks.push(new Spark(Math.random() * canvas.width, Math.random() * canvas.height));
+                }
+            }
+        }
+        
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            handleSparks();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        createSparks();
+        animate();
+    </script>
+</body>
+</html>
